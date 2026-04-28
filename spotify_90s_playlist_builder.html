@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>90s Spotify Playlist Builder</title>
+  <style>
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;margin:0;background:#111;color:#f3f3f3;line-height:1.4}
+    .wrap{max-width:760px;margin:0 auto;padding:20px}
+    h1{font-size:26px;margin:0 0 10px} h2{font-size:18px;margin:24px 0 8px}
+    .card{background:#1d1d1f;border:1px solid #333;border-radius:14px;padding:16px;margin:14px 0}
+    label{display:block;margin:12px 0 6px;font-weight:700}
+    input{box-sizing:border-box;width:100%;font-size:16px;padding:12px;border-radius:10px;border:1px solid #555;background:#0b0b0c;color:#fff}
+    button{width:100%;font-size:17px;font-weight:700;padding:14px 16px;border:0;border-radius:12px;margin:10px 0;background:#1db954;color:#000}
+    button.secondary{background:#e8e8e8;color:#111} button.danger{background:#ff6b6b;color:#111}
+    pre{white-space:pre-wrap;background:#080808;border:1px solid #333;border-radius:12px;padding:12px;max-height:330px;overflow:auto}
+    .small{font-size:13px;color:#b8b8b8}.ok{color:#47d16c}.warn{color:#ffd36b}.err{color:#ff7a7a}
+    details{margin:10px 0}.track{font-size:13px;color:#ccc;margin:2px 0}
+  </style>
+</head>
+<body><div class="wrap">
+  <h1>90s Spotify Playlist Builder</h1>
+  <p class="small">Creates three private Spotify playlists from the image tracklists: 1992, 1993 and 1994.</p>
+
+  <div class="card">
+    <h2>1. Spotify App Details</h2>
+    <label>Spotify Client ID</label>
+    <input id="clientId" placeholder="Paste your Client ID here" autocomplete="off" />
+    <label>Redirect URI</label>
+    <input id="redirectUri" readonly />
+    <p class="small">Put this exact Redirect URI into your Spotify Developer app settings. It must match exactly.</p>
+    <button class="secondary" onclick="copyRedirect()">Copy Redirect URI</button>
+  </div>
+
+  <div class="card">
+    <h2>2. Connect Spotify</h2>
+    <button onclick="login()">Log in to Spotify</button>
+    <p id="authStatus" class="small"></p>
+  </div>
+
+  <div class="card">
+    <h2>3. Create Playlists</h2>
+    <button onclick="buildPlaylists()">Create the 3 Spotify playlists</button>
+    <button class="danger" onclick="resetAll()">Reset saved login</button>
+    <pre id="log">Waiting.</pre>
+  </div>
+
+  <div class="card">
+    <h2>Included tracklists</h2>
+    <details><summary>Two Minutes in 1992</summary><div id="list1992"></div></details>
+    <details><summary>Two Minutes in 1993</summary><div id="list1993"></div></details>
+    <details><summary>Two Minutes in 1994</summary><div id="list1994"></div></details>
+  </div>
+</div>
+<script>
+const playlists = {
+  "Two Minutes in 1992": [
+    "Beastie Boys - So What'cha Want",
+    "Shabba Ranks - Mr. Loverman (New World Mix)",
+    "The Pharcyde - Passin' Me By",
+    "Kool G Rap & DJ Polo - Ill Street Blues",
+    "Arrested Development - People Everyday (Metamorphosis Mix)",
+    "Gang Starr feat. Jeru The Damaja & Lil' Dap - I'm The Man",
+    "Chaka Demus & Pliers - Murder She Wrote",
+    "Macka B - Roots Ragga",
+    "Miles Davis - Chocolate Chip",
+    "Naughty By Nature - Hip Hop Hooray",
+    "Ultramagnetic MCs - Poppa Large (East Coast Mix)",
+    "Prince & The New Power Generation - Sexy M.F.",
+    "Loose Ends - Hangin' On A String (Frankie Knuckles Remix)",
+    "Umosia - Love Don't Let Me Down (Primal Auto Soul Mix)",
+    "Aly-Us - Follow Me",
+    "Clivilles & Cole feat. Deborah Cooper - A Deeper Love",
+    "Ten City - My Peace of Heaven",
+    "Sergio Mendes - Magalenha",
+    "Third World - Give The People What They Need",
+    "Rage Against The Machine - Killing In The Name",
+    "Cajmere - Percolator",
+    "Jaydee - Plastic Dreams",
+    "808 State feat. UB40 - One In Ten (UB40 Vocal Mix)",
+    "Liquid - Sweet Harmony",
+    "SL2 - On A Ragga Tip",
+    "The Prodigy - Out Of Space"
+  ],
+  "Two Minutes in 1993": [
+    "Wu-Tang Clan - C.R.E.A.M.",
+    "Jeru The Damaja - Come Clean",
+    "Snoop Dogg - Gz and Hustlas",
+    "A Tribe Called Quest feat. Trugoy the Dove - Award Tour",
+    "Tha Alkaholiks - Make Room",
+    "Digable Planets - Rebirth Of Slick (Cool Like Dat)",
+    "Mad Kap - Dopest Verse",
+    "Ice Cube feat. Das EFX - Check Yo Self",
+    "Cypress Hill - Insane In The Brain",
+    "Notorious B.I.G. - Party And Bullshit",
+    "Souls Of Mischief - 93 'Til Infinity",
+    "The Jungle Brothers - 40 Below Trooper",
+    "Salt-N-Pepa - Shoop",
+    "Louchie Lou & Michie One - Rich Girl",
+    "General Levy - Champagne Body",
+    "Chaka Demus & Pliers - One Nation Under A Groove",
+    "Volcano - Vanonyana Lava",
+    "Daniel Wang - Like Some Dream (I Can't Stop Dreaming)",
+    "Robin S - Show Me Love (Stonebridge Club Mix)",
+    "Hardrive feat. Barbara Tucker - Deep Inside",
+    "Dajae feat. Cajmere - U Got Me Up (Danny Tenaglia's Club Version)",
+    "House Of Gypsies - Sume Sigh Say (The Masters Remix)",
+    "SMD - SMD #1A",
+    "LTJ Bukem - Music (Happy Raw)",
+    "Origin Unknown - Valley of The Shadows"
+  ],
+  "Two Minutes in 1994": [
+    "Dawn Penn - You Don’t Love Me (No, No, No)",
+    "Sabres Of Paradise - Wilmot Meets Lord Scruffage",
+    "Mary J. Blige - Mary Jane (All Night Long)",
+    "Pete Rock & C.L. Smooth - I Got A Love",
+    "The Lady Of Rage - Afro Puffs",
+    "Nas - Represent",
+    "Charizma & Peanut Butter Wolf - Just Like A Test",
+    "Eight From The Egg - Black Milk",
+    "Digable Planets feat. Jazzy Joyce - 9th Wonder (Blackitolism)",
+    "Warren G. & Nate Dogg - Regulate",
+    "A.D.O.R. - One For The Trouble (Drumapella)",
+    "Beastie Boys - Sure Shot",
+    "Dream Warriors - Are We There Yet?",
+    "Sharlene Boodram - Chamkay 'D' Chutney",
+    "IO - Claire",
+    "Kenny Dope presents The Bucketheads - Whew",
+    "Janet Rushmore - Joy (Choice Mix)",
+    "Mood II Swing presents Loni Clark - Love's Got Me On A Trip So High (Time Mix)",
+    "Barbara Tucker - Beautiful People",
+    "MD-XSpress - God Made Me Phunky",
+    "Primal Scream - Rocks",
+    "Baby D - Let Me Be Your Fantasy",
+    "The Prodigy - No Good (Start The Dance)",
+    "SMD - SMD3",
+    "M-Beat feat. General Levy - Incredible"
+  ]
+};
+
+const scopes = "playlist-modify-private playlist-modify-public";
+const authEndpoint = "https://accounts.spotify.com/authorize";
+const tokenEndpoint = "https://accounts.spotify.com/api/token";
+let logEl = document.getElementById('log');
+function log(msg, cls='') { logEl.textContent += "\n" + msg; logEl.scrollTop = logEl.scrollHeight; console.log(msg); }
+function setStatus() {
+  const token = localStorage.getItem('spotify_access_token');
+  document.getElementById('authStatus').innerHTML = token ? '<span class="ok">Spotify login token found.</span>' : '<span class="warn">Not logged in yet.</span>';
+}
+function currentRedirectUri(){ return window.location.origin + window.location.pathname; }
+document.getElementById('redirectUri').value = currentRedirectUri();
+document.getElementById('clientId').value = localStorage.getItem('spotify_client_id') || '';
+Object.entries(playlists).forEach(([name, tracks]) => {
+  const y = name.match(/(\d{4})/)[1];
+  const el = document.getElementById('list'+y);
+  el.innerHTML = tracks.map(t => `<div class="track">${t}</div>`).join('');
+});
+setStatus();
+
+async function sha256(plain) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(plain);
+  return window.crypto.subtle.digest('SHA-256', data);
+}
+function base64urlencode(a) {
+  return btoa(String.fromCharCode.apply(null, new Uint8Array(a)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function randomString(length) {
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let text = '';
+  const values = crypto.getRandomValues(new Uint8Array(length));
+  for (let i = 0; i < length; i++) text += possible[values[i] % possible.length];
+  return text;
+}
+async function login(){
+  const clientId = document.getElementById('clientId').value.trim();
+  if (!clientId) { alert('Paste your Spotify Client ID first.'); return; }
+  localStorage.setItem('spotify_client_id', clientId);
+  const verifier = randomString(64);
+  localStorage.setItem('spotify_code_verifier', verifier);
+  const challenge = base64urlencode(await sha256(verifier));
+  const params = new URLSearchParams({
+    client_id: clientId,
+    response_type: 'code',
+    redirect_uri: currentRedirectUri(),
+    scope: scopes,
+    code_challenge_method: 'S256',
+    code_challenge: challenge
+  });
+  window.location = `${authEndpoint}?${params.toString()}`;
+}
+
+async function handleCallback(){
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  if (!code) return;
+  logEl.textContent = 'Spotify returned an auth code. Exchanging for token.';
+  const clientId = localStorage.getItem('spotify_client_id');
+  const verifier = localStorage.getItem('spotify_code_verifier');
+  const body = new URLSearchParams({
+    client_id: clientId,
+    grant_type: 'authorization_code',
+    code: code,
+    redirect_uri: currentRedirectUri(),
+    code_verifier: verifier
+  });
+  const res = await fetch(tokenEndpoint, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body });
+  const json = await res.json();
+  if (!res.ok) { log('Token exchange failed: ' + JSON.stringify(json), 'err'); return; }
+  localStorage.setItem('spotify_access_token', json.access_token);
+  if (json.refresh_token) localStorage.setItem('spotify_refresh_token', json.refresh_token);
+  history.replaceState({}, document.title, currentRedirectUri());
+  setStatus();
+  log('Logged in. Now tap Create the 3 Spotify playlists.');
+}
+handleCallback();
+
+async function api(path, opts={}){
+  const token = localStorage.getItem('spotify_access_token');
+  if (!token) throw new Error('No Spotify token. Tap Log in to Spotify first.');
+  const res = await fetch('https://api.spotify.com/v1' + path, {
+    ...opts,
+    headers: { 'Authorization':'Bearer '+token, 'Content-Type':'application/json', ...(opts.headers||{}) }
+  });
+  if (res.status === 401) throw new Error('Spotify login expired. Tap Reset saved login, then log in again.');
+  if (!res.ok) throw new Error(path + ' failed: ' + await res.text());
+  return res.status === 204 ? null : res.json();
+}
+function stripFeaturing(s){ return s.replace(/feat\.|featuring|presents/gi, ' ').replace(/[()]/g, ' '); }
+async function searchTrack(line){
+  const [artistPart, ...titleParts] = line.split(' - ');
+  const title = titleParts.join(' - ').trim();
+  const artist = artistPart.trim();
+  const attempts = [
+    `track:"${title}" artist:"${artist}"`,
+    `${title} ${artist}`,
+    stripFeaturing(`${title} ${artist}`)
+  ];
+  for (const q of attempts){
+    const data = await api('/search?' + new URLSearchParams({type:'track', limit:'1', q}).toString(), {headers:{'Content-Type':'application/json'}});
+    if (data.tracks && data.tracks.items && data.tracks.items[0]) return data.tracks.items[0];
+  }
+  return null;
+}
+async function buildPlaylists(){
+  logEl.textContent = 'Starting.';
+  try{
+    const me = await api('/me');
+    log('Connected as Spotify user: ' + (me.display_name || me.id));
+    for (const [playlistName, tracks] of Object.entries(playlists)){
+      log('\nCreating playlist: ' + playlistName);
+      const created = await api(`/users/${encodeURIComponent(me.id)}/playlists`, {
+        method:'POST',
+        body: JSON.stringify({ name: playlistName, public:false, description:'Built from Sam Redmore image tracklist using Spotify Web API.' })
+      });
+      const uris = [];
+      for (const track of tracks){
+        const found = await searchTrack(track);
+        if (found){
+          uris.push(found.uri);
+          log('✓ ' + track + ' → ' + found.name + ' — ' + found.artists.map(a=>a.name).join(', '));
+        } else {
+          log('MISS: ' + track);
+        }
+      }
+      for (let i=0; i<uris.length; i+=100){
+        await api(`/playlists/${created.id}/tracks`, { method:'POST', body: JSON.stringify({uris: uris.slice(i, i+100)}) });
+      }
+      log('Created: ' + playlistName + ' | Added ' + uris.length + '/' + tracks.length);
+      log('Open: ' + created.external_urls.spotify);
+    }
+    log('\nDone. Check Spotify Library > Playlists.');
+  } catch(e){ log('ERROR: ' + e.message); }
+}
+function resetAll(){
+  ['spotify_access_token','spotify_refresh_token','spotify_code_verifier'].forEach(k=>localStorage.removeItem(k));
+  setStatus(); logEl.textContent = 'Reset done.';
+}
+function copyRedirect(){
+  navigator.clipboard.writeText(document.getElementById('redirectUri').value);
+  alert('Redirect URI copied.');
+}
+</script></body></html>
